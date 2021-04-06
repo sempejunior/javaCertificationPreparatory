@@ -22,7 +22,13 @@ import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 /**
@@ -31,9 +37,7 @@ import java.util.ResourceBundle;
  */
 public class ProductManager {
 
-    private Product product;
-    private Review review;
-
+    private Map<Product, List<Review>> products = new HashMap<>();
     private Locale locale;
     private ResourceBundle resources;
     private DateTimeFormatter dateFormat;
@@ -42,28 +46,64 @@ public class ProductManager {
     public ProductManager(Locale locale) {
         this.locale = locale;
 
-        resources = ResourceBundle.getBundle("labs.pm.data.resources", locale);
+        resources = ResourceBundle.getBundle("labs.pm.data.resources.resources", locale);
         dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT);
         moneyFormat = NumberFormat.getCurrencyInstance(locale);
     }
 
     public Product createProduct(int id, String name, BigDecimal price, Rating rating, LocalDate bestBefore) {
-        product = new Food(id, name, price, rating, bestBefore);
+        Product product = new Food(id, name, price, rating, bestBefore);
+        products.putIfAbsent(product, new ArrayList<>());
         return product;
     }
 
     public Product createProduct(int id, String name, BigDecimal price, Rating rating) {
-        product = new Drink(id, name, price, rating);
+        Product product = new Drink(id, name, price, rating);
+        products.putIfAbsent(product, new ArrayList<>());
         return product;
     }
 
+    public Product reviewProduct(int id, Rating rating, String comments) {
+         Product product = findProduct(id);
+        return reviewProduct(product, rating, comments);
+    }
+    
     public Product reviewProduct(Product product, Rating rating, String comments) {
-        review = new Review(rating, comments);
-        this.product = product.applyRating(rating);
-        return this.product;
+
+        List<Review> reviews = products.get(product);
+        products.remove(product, reviews);
+        reviews.add(new Review(rating, comments));
+
+        int sum = 0;
+        boolean reviewed = false;
+
+        for (Review review : reviews) {
+            sum += review.getRating().ordinal();
+        }
+
+        product = product.applyRating(Rateable.convert(Math.round((float) sum / reviews.size())));
+        products.put(product, reviews);
+        return product;
     }
 
-    public void printProductReport() {
+    public Product findProduct(int id) {
+        Product result = null;
+
+        for (Product product : products.keySet()) {
+            if(product.getId() == id){
+                result = product;
+                break;
+            };
+        }
+        return result;
+    }
+    
+    public void printProductReport(int id) {
+        Product product = findProduct(id);
+        printProductReport(product);
+    }
+
+    public void printProductReport(Product product) {
         StringBuilder txt = new StringBuilder();
         txt.append(MessageFormat.format(resources.getString("product"),
                 product.getName(),
@@ -74,15 +114,22 @@ public class ProductManager {
 
         txt.append("\n");
 
-        if (review != null) {
+        List<Review> reviews = products.get(product);
+        Collections.sort(reviews);
+
+        for (Review review : reviews) {
+            if (review == null) {
+                break;
+            }
             txt.append(MessageFormat.format(resources.getString("review"),
-                    review.getRating().getStars(), review.getComents()
-            ));
-        } else {
-            txt.append(resources.getString("no.reviews"));
+                    review.getRating().getStars(), review.getComents()));
+
+            txt.append("\n");
         }
-        txt.append("\n");
-        
+        if (reviews.isEmpty()) {
+            txt.append(resources.getString("no.reviews"));
+            txt.append("\n");
+        }
         System.out.println(txt);
     }
 
