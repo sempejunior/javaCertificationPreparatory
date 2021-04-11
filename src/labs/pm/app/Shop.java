@@ -17,8 +17,7 @@
 package labs.pm.app;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Locale;
+import java.util.Comparator;
 import labs.pm.data.Product;
 import labs.pm.data.ProductManager;
 import labs.pm.data.Rating;
@@ -35,10 +34,15 @@ public final class Shop {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        ProductManager pm = new ProductManager(Locale.UK);
-        pm.createProduct(101, "Tea", BigDecimal.valueOf(1.99), Rating.NOT_RATED);
+        ProductManager pm = new ProductManager("pt-BR");
 
-        pm.printProductReport(101);
+        pm.createProduct(103, "Coffee 2", BigDecimal.valueOf(8.99), Rating.NOT_RATED);
+
+        pm.reviewProduct(103, Rating.ONE_STAR, "OK");
+        pm.reviewProduct(103, Rating.ONE_STAR, "Where is the milk?");
+        pm.reviewProduct(103, Rating.TWO_STAR, "Perfect");
+
+        pm.createProduct(101, "Tea", BigDecimal.valueOf(1.99), Rating.NOT_RATED);
 
         pm.reviewProduct(101, Rating.FOUR_STAR, "Nice hot cup of tea");
         pm.reviewProduct(101, Rating.TWO_STAR, "Rather weak tea");
@@ -47,15 +51,19 @@ public final class Shop {
         pm.reviewProduct(101, Rating.FIVE_STAR, "The beste tea");
         pm.reviewProduct(101, Rating.THREE_STAR, "Just add some lemon");
 
-        pm.printProductReport(101);
+        pm.createProduct(104, "Tea 2", BigDecimal.valueOf(1.99), Rating.NOT_RATED);
+        pm.reviewProduct(104, Rating.TWO_STAR, "Rather weak tea");
 
-        pm.createProduct(102, "Coffee", BigDecimal.valueOf(1.99), Rating.NOT_RATED);
+        pm.createProduct(102, "Coffee", BigDecimal.valueOf(2.99), Rating.NOT_RATED);
 
         pm.reviewProduct(102, Rating.THREE_STAR, "OK");
         pm.reviewProduct(102, Rating.ONE_STAR, "Where is the milk?");
         pm.reviewProduct(102, Rating.FIVE_STAR, "Perfect");
 
-        pm.printProductReport(102);
+        Comparator<Product> ratingSorter = (p1, p2) -> p2.getRating().ordinal() - p1.getRating().ordinal();
+        Comparator<Product> priceSorter = (p1, p2) -> p2.getPrice().compareTo(p1.getPrice());
+
+        pm.printProducts(ratingSorter.thenComparing(priceSorter));
 
     }
 
